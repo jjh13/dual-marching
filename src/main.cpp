@@ -32,13 +32,13 @@ class HamFunction {
 public:
 	HamFunction(){}	
 	double evaluate(const double &x, const double &y, const double &z) {
-		double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
-		return xx*xx + yy*yy + zz*zz - 0.25*0.25;
+		// double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
+		// return xx*xx + yy*yy + zz*zz - 0.25*0.25;
 
-		// if( (x >= 0.25 && x <= 0.75) && (y >= 0.25 && y <= 0.75) && (z >= 0.25 && z <= 0.75)) {
-		// 	return 1;
-		// }
-		// return -1.;
+		if( (x >= 0.25 && x <= 0.75) && (y >= 0.25 && y <= 0.75) && (z >= 0.25 && z <= 0.75)) {
+			return -1;
+		}
+		return 1.;
 		//return -(sin(0.3141592654e1 * x) * sin(0.3141592654e1 * y) * sin(0.3141592654e1 * z) * (sqrt(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1)) - 0.2e1 * cos(0.8e1 * 0.3141592654e1 * (0.9e1 * z - 0.45e1) * pow(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1), -0.1e1 / 0.2e1)) - 0.2e1));
 	}
 
@@ -157,7 +157,7 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		{0, -1,-2}
 	};
 
-	std::vector<std::vector<int> > polygon_lookup = {
+	std::vector<std::vector<int>> adj_index = {
 		{4 ,5  ,7  ,6},
 		{8 ,9  ,10 ,11},
 		{17,16 ,18 ,19},
@@ -165,15 +165,34 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		{0 , 1 , 3 , 2},
 		{20, 21, 22, 23},
 	    
-		{2 ,3 ,4 ,5 ,17,16},
+	    {2 ,3 ,4 ,5 ,17,16},
 		{5 ,17,19,20,22,7 },
 		{1 ,3 ,4 ,6 ,13,12},
 		{13,6 ,7 ,22,23,15},
 		{0 ,2 ,16,18,9 ,8 },
 		{18,9 ,11,21,20,19},
 		{0 ,1 ,12,14,10,8 },
-	    {10,14,15,23,21,11}
+		{10,14,15,23,21,11}
 	};
+
+	std::vector<std::vector<std::vector<int>>> polygon_lookup = {
+		{{4,5,7}, {4,7,6}},			// {4 ,5  ,7  ,6},
+		{{8,9,10}, {8, 10, 11}},	// {8 ,9  ,10 ,11},
+		{{17,16,18}, {17, 18, 19}},	// {17,16 ,18 ,19},
+		{{12, 13, 15}, {12, 15, 14}},// {12,13 ,15 ,14},
+		{{0,1,3}, {0,3,2}}, // {0 , 1 , 3 , 2},
+		{{20,21,22}, {20,22,23}}, // {20, 21, 22, 23},
+	    
+		{{2,3,4}, {2,4,5}, {2,5,17}, {2,17,16}}, // {2 ,3 ,4 ,5 ,17,16},
+		{{5,17,19}, {5,19,20}, {5,20,22}, {5, 22, 7}}, // {5 ,17,19,20,22,7 },
+		{{1,3,4}, {1,4,6}, {1,6,13}, {1,13,12}}, // {1 ,3 ,4 ,6 ,13,12},
+		{{13, 6, 7}, {13, 7,22}, {13,22, 23}, {13, 23, 15}}, // {13,6 ,7 ,22,23,15},
+		{{0,2,16}, {0, 16, 18}, {0, 18,9}, {0,9,8}}, // {0 ,2 ,16,18,9 ,8 },
+		{{18,9,11}, {18, 11, 21}, {18, 21,20}, {18,20,19}}, // {18,9 ,11,21,20,19},
+		{{0,1,12}, {0,12,14}, {0, 14, 10}, {0, 10, 8}}, // {0 ,1 ,12,14,10,8 },
+		{{10,14,15}, {10, 15, 23}, {19,23,21}, {10,21,11}} //    {10,14,15,23,21,11}
+	};
+
 	struct cell_vertex
 	{
 		cell_vertex(){
@@ -216,27 +235,38 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 						continue;
 
 					// Find the sign change.
+					
 					coeff = ((value - 0)/(value - next_value));
 					pv = (vector3<T>(x,y,z) - vector3<T>(ii,jj,kk)).normalize();
-					pv = vector3<T>(x,y,z) + pv * coeff;
+					pv = vector3<T>(ii,jj,kk) + pv * coeff;
+					printf("%f\n", coeff);
 
-					std::vector<int> luf = polygon_lookup[idx - 1];
-					std::vector<vector3<int> > face;
+					/*  */
+					std::vector<int> adj = adj_index[idx - 1];
+					std::vector<std::vector<int>> luf = polygon_lookup[idx - 1];
 
-					for(auto jdx : luf) {
-						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
-						face.push_back(hash);
+					// Build triangles
+					for(auto triangle : luf) {
+						std::vector<vector3<int> > tri;
 
+						for(auto jdx : triangle) {
+							vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
+							tri.push_back(hash);
+						}
+						// 
 						{
 							#pragma omp critical
-							face_hash_table(hash.i, hash.j, hash.k).touching.push_back({hash.i, hash.j, hash.k});
+							faceList.push_back(tri);
 						}
 					}
-
-					// Add the face to the list of faces
-					{
-						#pragma omp critical
-						faceList.push_back(face);
+					
+					// Mark the hashed vertex as having seen this vertex
+					for(auto jdx : adj) {
+						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
+						{
+							#pragma omp critical
+							face_hash_table(hash.i, hash.j, hash.k).touching.push_back({pv.i, pv.j, pv.k});
+						}
 					}
 				}
 			}
@@ -253,7 +283,7 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		for(auto v : vList) {
 			pavg += v;
 		}
-		pavg = pavg * (1./((T)size))*dh;
+		pavg = pavg * (dh/((T)size));
 		auto normal = lattice->grad_f(pavg).normalize();
 
 		vertex3<T> vtx(pavg.i, pavg.j, pavg.k, normal.i, normal.j, normal.k);
