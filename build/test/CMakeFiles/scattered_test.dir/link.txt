@@ -1,0 +1,1 @@
+/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/scattered_test.dir/scattered_test.cpp.o  -o scattered_test  /usr/local/lib/libfftw3.dylib -framework OpenCL 

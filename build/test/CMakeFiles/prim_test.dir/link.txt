@@ -1,0 +1,1 @@
+/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/prim_test.dir/primitive_test.cpp.o  -o prim_test  /usr/local/lib/libfftw3.dylib -framework OpenCL 

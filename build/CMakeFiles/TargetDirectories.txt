@@ -1,0 +1,9 @@
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/array_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/bcc_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/cc_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/fcc_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/mc_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/ply_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/poly_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/prim_test.dir
+/Users/joshua/Projects/sisl/build/test/CMakeFiles/scattered_test.dir
