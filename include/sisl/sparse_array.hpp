@@ -16,7 +16,7 @@
 #include <sisl/array.hpp>
 
 // Useful for debugging
-//#define NO_ARRAY_CHECK
+#define NO_ARRAY_CHECK
 namespace sisl {
 
 template <class T, class Allocator = std::allocator<T> >
