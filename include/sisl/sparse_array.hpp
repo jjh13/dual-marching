@@ -108,10 +108,11 @@ class sparse_array3 : array3<T,Allocator> {
 private:
 	T *_array;
 	unsigned int _nx, _ny, _nz;
-	std::unordered_map<int, T> siteMap;
 	T defaultValue;
 
 public:
+	std::unordered_map<int, T> siteMap;
+	
 	sparse_array3(const T &dv) : _nx(1), _ny(1), _nz(1), defaultValue(dv) {
 		siteMap = std::unordered_map<int, T>(); 
 	}

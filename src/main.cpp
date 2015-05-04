@@ -31,7 +31,7 @@ class HamFunction {
 public:
 	HamFunction(){}	
 	double evaluate(const double &x, const double &y, const double &z) {
-		return (sin(0.3141592654e1 * x) * sin(0.3141592654e1 * y) * sin(0.3141592654e1 * z) * (sqrt(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1)) - 0.2e1 * cos(0.8e1 * 0.3141592654e1 * (0.9e1 * z - 0.45e1) * pow(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1), -0.1e1 / 0.2e1)) - 0.2e1));
+		return -(sin(0.3141592654e1 * x) * sin(0.3141592654e1 * y) * sin(0.3141592654e1 * z) * (sqrt(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1)) - 0.2e1 * cos(0.8e1 * 0.3141592654e1 * (0.9e1 * z - 0.45e1) * pow(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1), -0.1e1 / 0.2e1)) - 0.2e1));
 	}
 
 	double evaluate(const vector3<T> &p) {
@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
 {
 	try {
 		CmdLine cmd("Dual BCC marching", ' ', VESION_STRING);
+		sisl::utility::marchingCubes<double> mc;
 
 		ValueArg<std::string> outputArg("o", "output", "Output mesh/implicit file",true,"out.ply","filename");
 
@@ -72,11 +73,22 @@ int main(int argc, char *argv[])
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
-			return f.evaluate(p) - 0.2;
+			return f.evaluate(p) + 0.2;
 		});
 
 		dualConour<double>(lat);
 
+		mc.marchLattice<LATType, double, double>(
+			lat, 
+			NULL, 
+			NULL, 
+			NULL, 
+			-0.2, 
+			0.01, 
+			vector3<double>(0,0,0), 
+			vector3<double>(1,1,1));
+
+		mc.writeSurface("marchingCubesTest.ply");
 
 	}catch (ArgException &e) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl; 
@@ -153,12 +165,12 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	};
 
 	std::vector<int> minimal_set = {1, 3, 5, 7, 8, 9, 11};
-	sparse_array3<std::vector<double> > face_hash_table({0});
+	sparse_array3<std::vector<vector3<T> > > face_hash_table(1000,1000,1000, {{0,0,0}});
 
 	#pragma omp parallel for
-	for(int i = 0; i < res*2; i+=2)
-		for(int j = 0; j < res*2; j+=2)
-			for(int k = 0; k < res*2; k++){
+	for(int i = 2; i < res*2-2; i+=2)
+		for(int j = 2; j < res*2-2; j+=2)
+			for(int k = 2; k < res*2-2; k++){
 				int ii = i + (k%2);
 				int jj = j + (k%2);
 				int kk = k;
@@ -179,21 +191,39 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 					// Find the sign change.
 					//coeff = ((value - 0)/(value - next_value))
 					pv = (vector3<T>(x,y,z) - vector3<T>(ii,jj,kk)).normalize();
-					pv = pv + vector3<T>(x,y,z)*coeff;
+					pv = pv + vector3<T>(x,y,z) * coeff;
+					// printf("v %f, %f, %f\n", pv.i, pv.j, pv.k);
 
 					std::vector<int> luf = polygon_lookup[idx-1];
 					for(auto jdx : luf) {
 						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
+
 						if(!face_hash_table.hasValue(hash.i, hash.j, hash.k))
 						{
-							#pragma omp critical 
-							face_hash_table(hash.i, hash.j, hash.k) = {10.};
+							#pragma omp critical
+							face_hash_table(hash.i, hash.j, hash.k) = {pv};
 						} else {
-
+							#pragma omp critical
+							face_hash_table(hash.i, hash.j, hash.k).push_back(pv);
 						}
 					}
 				}
 			}
+
+	// Calculate the vertex for each 
+	for (auto it = face_hash_table.siteMap.begin(); it != face_hash_table.siteMap.end(); ++it) {
+		auto hash = it->first;
+		auto vList = it->second;
+		auto pavg = vector3<T>(0,0,0);
+		auto size = vList.size();
+
+//		printf("Become %d\n", size);
+		for(auto v : vList){
+			pavg += v;
+		}
+		pavg = pavg * (1./((T)size)) ;
+		printf("v %f, %f, %f\n", pavg.i, pavg.j, pavg.k);
+	}
 
 }
 
