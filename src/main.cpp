@@ -17,6 +17,7 @@
 #include <poisson/pointset.hpp>
 #include <sisl/utility/isosurface.hpp>
 #include <sisl/utility/scattered.hpp>
+#include <sisl/utility/ply_writer.hpp>
 
 #include <tuple>
 
@@ -163,9 +164,24 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		{0 ,1 ,12,14,10,8 },
 	    {10,14,15,23,21,11}
 	};
+	struct cell_vertex
+	{
+		cell_vertex(){
+
+		}
+		cell_vertex(T x, T y, T z) { 
+			touching = {{x,y,z}};
+		};
+		std::vector<vector3<T> > touching;
+		vector3<T> vertex;
+		int vertexId;
+	};
 
 	std::vector<int> minimal_set = {1, 3, 5, 7, 8, 9, 11};
-	sparse_array3<std::vector<vector3<T> > > face_hash_table(1000,1000,1000, {{0,0,0}});
+	sparse_array3<cell_vertex> face_hash_table(1000,1000,1000, {0,0,0});
+	std::vector<std::vector<vector3<int> > > faceList;
+
+	utility::ply_writer<T> output_mesh;
 
 	#pragma omp parallel for
 	for(int i = 2; i < res*2-2; i+=2)
@@ -192,38 +208,51 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 					//coeff = ((value - 0)/(value - next_value))
 					pv = (vector3<T>(x,y,z) - vector3<T>(ii,jj,kk)).normalize();
 					pv = pv + vector3<T>(x,y,z) * coeff;
-					// printf("v %f, %f, %f\n", pv.i, pv.j, pv.k);
 
 					std::vector<int> luf = polygon_lookup[idx-1];
+					std::vector<vector3<int> > face;
 					for(auto jdx : luf) {
 						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
-
-						if(!face_hash_table.hasValue(hash.i, hash.j, hash.k))
+						face.push_back(hash);
 						{
 							#pragma omp critical
-							face_hash_table(hash.i, hash.j, hash.k) = {pv};
-						} else {
-							#pragma omp critical
-							face_hash_table(hash.i, hash.j, hash.k).push_back(pv);
+							face_hash_table(hash.i, hash.j, hash.k).touching.push_back({pv.i, pv.j, pv.k});
+
 						}
 					}
+
+					faceList.push_back(face);
 				}
 			}
 
 	// Calculate the vertex for each 
 	for (auto it = face_hash_table.siteMap.begin(); it != face_hash_table.siteMap.end(); ++it) {
 		auto hash = it->first;
-		auto vList = it->second;
+		auto vcache = it->second;
 		auto pavg = vector3<T>(0,0,0);
+		auto vList = vcache.touching;
 		auto size = vList.size();
 
-//		printf("Become %d\n", size);
+
 		for(auto v : vList){
 			pavg += v;
 		}
-		pavg = pavg * (1./((T)size)) ;
-		printf("v %f, %f, %f\n", pavg.i, pavg.j, pavg.k);
+		pavg = pavg * (1./((T)size));
+		auto normal = pavg;
+		{
+
+			face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex({pavg, normal});
+		}
 	}
+
+	for(auto face : faceList) {
+		int x = face_hash_table(face[0].i, face[0].j, face[0].k).vertexId;
+		int y = face_hash_table(face[1].i, face[1].j, face[1].k).vertexId;
+		int z = face_hash_table(face[2].i, face[2].j, face[2].k).vertexId;
+		printf("%d,%d,%d\n", x,y,z);
+		output_mesh.addTriangle(x,y,z);
+	}
+	output_mesh.writePly("output.ply");
 
 }
 
