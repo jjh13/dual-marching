@@ -34,7 +34,7 @@ public:
 		fp << "property float nx" << endl;
 		fp << "property float ny" << endl;
 		fp << "property float nz" << endl;
-		fp << "element face " << faces.size() << endl;
+		fp << "element face " << faces.size()+polygons.size() << endl;
 		fp << "property list uchar int vertex_indices" << endl;
 		fp << "end_header" << endl;
 
@@ -49,6 +49,8 @@ public:
 			p.i = verts[i].n.i;
 			p.j = verts[i].n.j;
 			p.k = verts[i].n.k;
+
+			//printf("v %f  %f  %f\nvn %f %f %f \n", p.x, p.y, p.z, p.i, p.j, p.k);
 			fp.write((char*)&p, sizeof(_p));
 		}
 
@@ -64,6 +66,16 @@ public:
 			f.k = std::get<2>(faces[i]);
 			fp.write((char*)&f, sizeof(_f));
 		}
+
+		for(unsigned int i = 0; i < polygons.size(); i++) {
+			auto poly = polygons[i];
+
+			char t = (char)poly.size();
+			fp.write((char*)&t, sizeof(char));
+			for(int index : poly)
+				fp.write((char*)&index, sizeof(int));
+		}
+
 		fp.close();
 		return true;
 	}
@@ -90,24 +102,29 @@ public:
 
 	int addTriangle(sisl::vertex3<T> v1, sisl::vertex3<T> v2, sisl::vertex3<T> v3) {
 		std::tuple<int,int,int> f;
-
+		int r = 0;
 		#pragma omp critical (add_face)
 		{
-			std::get<0>(f) = addVertex(v1);
-			std::get<1>(f) = addVertex(v2);
-			std::get<2>(f) = addVertex(v3);
-		
-			faces.push_back(f);
+			int i1 = addVertex(v1),
+				i2 = addVertex(v2),
+				i3 = addVertex(v3);
+			
+			r = addPolygon({i1,i2,i3});
 		}
-		return int(faces.size())-1;
+		return r; 
 	}
 
 	int addTriangle(int i, int j, int k) {
+		return addPolygon({i,j,k});
+	}
+	
+	int addPolygon(const std::vector<int> &v) {
 		int r = 0;
+
 		#pragma omp critical (add_face) 
 		{
-			faces.push_back(std::tuple<int,int,int>(i,j,k));
-			r = int(faces.size())-1;
+			polygons.push_back(v);
+			r = int(polygons.size())-1;
 		}
 		return r;
 	}
@@ -117,7 +134,7 @@ public:
 	}
 
 	int countFaces() {
-		return int(faces.size());
+		return int(faces.size()+polygons.size());
 	}
 
 private:
@@ -127,6 +144,8 @@ private:
 	std::multimap<sisl::vertex3<T>, int> vertexIndexMap;
 	std::vector<sisl::vertex3<T>> verts;
 	std::vector<std::tuple<int,int,int>> faces;
+
+	std::vector<std::vector<int>> polygons;
 };
 };
 };

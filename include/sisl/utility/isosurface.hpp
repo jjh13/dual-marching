@@ -242,7 +242,7 @@ private:
 				if(fabs(iVal2-iVal1) < 0.0001)
 					intr = 0.5;
 				sisl::vector3<T> vnew = v1.p*(1.-intr) + v2.p*(intr);
-				sisl::vector3<T> na = l->grad_f(vnew);
+				sisl::vector3<T> na = l->grad_f(vnew).normalize();
 				
 				vMap->insert(
 					{

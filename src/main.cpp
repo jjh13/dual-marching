@@ -61,16 +61,16 @@ int main(int argc, char *argv[])
 
 		ValueArg<std::string> outputArg("o", "output", "Output mesh/implicit file",true,"out.ply","filename");
 
-		cmd.add(outputArg);
+		//cmd.add(outputArg);
 		cmd.parse(argc, argv);
-		std::string output = outputArg.getValue();
+//		std::string output = outputArg.getValue();
 
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
 		HamFunction<double> f;
 	
-		LATType *lat = new LATType(1./double(2.*100));
+		LATType *lat = new LATType(1./double(2.*25));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 		});
 
 		dualConour<double>(lat);
+
 
 		mc.marchLattice<LATType, double, double>(
 			lat, 
@@ -101,6 +102,8 @@ int main(int argc, char *argv[])
 template <class T>
 void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	int res = lattice->getResolution();
+	T dh = lattice->getScale();
+
 
 	std::vector<vector3<int> > vertices = {
 		{ 0, 0, 0},
@@ -178,11 +181,10 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	};
 
 	std::vector<int> minimal_set = {1, 3, 5, 7, 8, 9, 11};
-	sparse_array3<cell_vertex> face_hash_table(1000,1000,1000, {0,0,0});
+	sparse_array3<cell_vertex> face_hash_table(1000,1000,1000, {});
 	std::vector<std::vector<vector3<int> > > faceList;
 
 	utility::ply_writer<T> output_mesh;
-
 	#pragma omp parallel for
 	for(int i = 2; i < res*2-2; i+=2)
 		for(int j = 2; j < res*2-2; j+=2)
@@ -191,12 +193,14 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 				int jj = j + (k%2);
 				int kk = k;
 
+				// Get the value of this point
 				T value = lattice->GV(ii, jj, kk);
-				for(auto idx : minimal_set){
+				for(auto idx : minimal_set) {
+
 					auto vdx = vertices[idx];
-					int x = vdx.i + ii;
-					int y = vdx.j + jj;
-					int z = vdx.k + kk;
+					int x = vdx.i + ii, 
+						y = vdx.j + jj, 
+						z = vdx.k + kk;
 					T coeff = 0.5;
 					T next_value = lattice->GV(x, y, z);
 					vector3<T> pv;
@@ -205,27 +209,32 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 						continue;
 
 					// Find the sign change.
-					//coeff = ((value - 0)/(value - next_value))
+					coeff = ((value - 0)/(value - next_value));
 					pv = (vector3<T>(x,y,z) - vector3<T>(ii,jj,kk)).normalize();
-					pv = pv + vector3<T>(x,y,z) * coeff;
+					pv = vector3<T>(x,y,z) + pv * coeff;
 
-					std::vector<int> luf = polygon_lookup[idx-1];
+					std::vector<int> luf = polygon_lookup[idx - 1];
 					std::vector<vector3<int> > face;
+
 					for(auto jdx : luf) {
 						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
 						face.push_back(hash);
+
 						{
 							#pragma omp critical
 							face_hash_table(hash.i, hash.j, hash.k).touching.push_back({pv.i, pv.j, pv.k});
-
 						}
 					}
 
-					faceList.push_back(face);
+					// Add the face to the list of faces
+					{
+						#pragma omp critical
+						faceList.push_back(face);
+					}
 				}
 			}
 
-	// Calculate the vertex for each 
+	// Calculate the vertex for each cell
 	for (auto it = face_hash_table.siteMap.begin(); it != face_hash_table.siteMap.end(); ++it) {
 		auto hash = it->first;
 		auto vcache = it->second;
@@ -234,26 +243,29 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		auto size = vList.size();
 
 
-		for(auto v : vList){
+		for(auto v : vList) {
 			pavg += v;
 		}
-		pavg = pavg * (1./((T)size));
-		auto normal = pavg;
-		{
+		pavg = pavg * (1./((T)size))*dh;
+		auto normal = lattice->grad_f(pavg).normalize();
 
-			face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex({pavg, normal});
+		vertex3<T> vtx(pavg.i, pavg.j, pavg.k, normal.i, normal.j, normal.k);
+
+		{
+			face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex(vtx);
 		}
 	}
 
+	/* Build the final face list */
 	for(auto face : faceList) {
-		int x = face_hash_table(face[0].i, face[0].j, face[0].k).vertexId;
-		int y = face_hash_table(face[1].i, face[1].j, face[1].k).vertexId;
-		int z = face_hash_table(face[2].i, face[2].j, face[2].k).vertexId;
-		printf("%d,%d,%d\n", x,y,z);
-		output_mesh.addTriangle(x,y,z);
+		std::vector<int> index_face; 
+		for(auto hash : face) {
+			index_face.push_back(face_hash_table(hash.i, hash.j, hash.k).vertexId);
+		}
+		output_mesh.addPolygon(index_face);
 	}
-	output_mesh.writePly("output.ply");
 
+	output_mesh.writePly("output.ply");
 }
 
 

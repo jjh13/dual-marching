@@ -15,6 +15,7 @@
 #include <memory>
 #include <new>
 #include <stdexcept>
+#include <cstddef>
 
 #include <stdio.h>
 #include <string.h>

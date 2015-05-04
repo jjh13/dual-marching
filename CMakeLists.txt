@@ -4,6 +4,7 @@ enable_testing()
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 ADD_DEFINITIONS( -std=c++11)
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /opt/local/lib)
 
 project (sisl_tests)
 
@@ -33,11 +34,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
- 	 MESSAGE(STATUS ${LIBS} )
+MESSAGE(STATUS ${LIBS} )
 
 include_directories(./include)
-add_executable (poisson ./src/main.cpp) 
-target_link_libraries (poisson ${LIBS})
+add_executable (dualbcc ./src/main.cpp) 
+target_link_libraries (dualbcc ${LIBS})
 
 add_subdirectory(test)
 

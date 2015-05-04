@@ -140,11 +140,76 @@ public:
 			(L->GV(i+(2),j+(2),k+(-2))  + L->GV(i+(-2),j+(2),k+(-2)) + L->GV(i+(2),j+(-2),k+(-2)) + L->GV(i+(-2),j+(-2),k+(-2)) )*(-W2)) * sx ;
 #undef W1
 #undef W2
-		return vector3<O>(dx,dy,dz);
+		return vector3<O>(-dx,-dy,-dz);
 	}
 
 	static const vector3<O> convolutionSumNormal(const vector3<I> &p, shift_invariant_space3<linear_bcc_box, O, I> *L) {
-		return vector3<O>(0,0,0);
+				int P1[3],P2[3],P3[3],P4[3];
+		int Q1[3],Q2[3],Q3[3],Q4[3];
+		int I1[3],I2[3];
+
+		O r = 0;
+		I h = L->getScale();
+
+		I x = p.i/h;
+		I y = p.j/h;
+		I z = p.k/h;
+
+		vector3<I> BCCvox(
+			(x + y) / 2,
+			(x + z) / 2,
+			(y + z) / 2);
+
+		int vx = (int)floor(BCCvox.i),
+			vy = (int)floor(BCCvox.j),
+			vz = (int)floor(BCCvox.k);
+
+		vector3<O> ga(
+			BCCvox.i - vx,
+			BCCvox.j - vy,
+			BCCvox.k - vz);
+
+		// P1 is the starting BCC point
+		P1[0] = vx + vy - vz;
+		P1[1] = vx - vy + vz;
+		P1[2] = -vx + vy + vz;
+
+		// Sort 
+		int alpha_GE_beta = (ga.i >= ga.j);
+		int beta_GE_gamma = (ga.j >= ga.k);
+		int alpha_GE_gamma = (ga.i >= ga.k);
+
+		I maxParameter = std::max(ga.i, std::max(ga.j, ga.k));
+		I minParameter = std::min(ga.i, std::min(ga.j, ga.k));
+		I midParameter = ga.i + ga.j + ga.k - maxParameter - minParameter;
+
+		int i = (alpha_GE_beta * 4 + beta_GE_gamma * 2 + alpha_GE_gamma);
+
+		// 
+		I1[0] = (i == 7); I2[0] = (i == 3);
+		I1[1] = (i == 5); I2[1] = (i == 2);
+		I1[2] = (i == 4); I2[2] = (i == 0);
+
+		// The first two points come for free
+		// diagonal
+		P2[0] = 1 + P1[0];
+		P2[1] = 1 + P1[1];
+		P2[2] = 1 + P1[2]; 
+	
+		// The rest are determinied by the sort
+		P3[0] = P1[0] + 1 - (I1[2] + I2[2])*2; 
+		P3[1] = P1[1] + 1                     - (I2[0] + I2[1])*2; 
+		P3[2] = P1[2] - 1 + (I1[2] + I2[2])*2 + (I2[0] + I2[1])*2;  
+
+		P4[0] = P1[0] + 2 - (I1[1] + I1[2])*2 - (I2[1] + I2[2])*2; 
+		P4[1] = P1[1] + 0 + (I1[1] + I1[2])*2;
+		P4[2] = P1[2] + 0                     + (I2[1] + I2[2])*2;
+
+		vector3<O> D1 = L->GN(P1[0], P1[1], P1[2]) * (1-maxParameter);
+		vector3<O> D2 = L->GN(P2[0], P2[1], P2[2]) * minParameter;
+		vector3<O> D3 = L->GN(P3[0], P3[1], P3[2]) * (maxParameter-midParameter);
+		vector3<O> D4 = L->GN(P4[0], P4[1], P4[2]) * (midParameter-minParameter);
+		return D1 + D2 + D3 + D4;
 	}
 
 	//Filters	
