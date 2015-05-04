@@ -155,7 +155,7 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	std::vector<int> minimal_set = {1, 3, 5, 7, 8, 9, 11};
 	sparse_array3<std::vector<double> > face_hash_table({0});
 
-//	#pragma omp parallel for
+	#pragma omp parallel for
 	for(int i = 0; i < res*2; i+=2)
 		for(int j = 0; j < res*2; j+=2)
 			for(int k = 0; k < res*2; k++){
@@ -184,9 +184,12 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 					std::vector<int> luf = polygon_lookup[idx-1];
 					for(auto jdx : luf) {
 						vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
+						if(!face_hash_table.hasValue(hash.i, hash.j, hash.k))
 						{
 							#pragma omp critical 
 							face_hash_table(hash.i, hash.j, hash.k) = {10.};
+						} else {
+
 						}
 					}
 				}

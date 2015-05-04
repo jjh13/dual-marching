@@ -29,7 +29,7 @@ private:
 	T defaultValue;
 
 public:
-	sparse_array4(const T &dv) : _nx(0), _ny(0), _nz(0), _nw(0), defaultValue(dv) {
+	sparse_array4(const T &dv) : _nx(1), _ny(1), _nz(1), _nw(1), defaultValue(dv) {
 		siteMap = std::unordered_map<int, T>();
 	}
 	sparse_array4(const int &nx, const int &ny, const int &nz, const int &nw, const T &dv) :  _nx(nx), _ny(ny), _nz(nz), _nw(nw), defaultValue(dv) { }
@@ -112,7 +112,7 @@ private:
 	T defaultValue;
 
 public:
-	sparse_array3(const T &dv) : _nx(0), _ny(0), _nz(0), defaultValue(dv) {
+	sparse_array3(const T &dv) : _nx(1), _ny(1), _nz(1), defaultValue(dv) {
 		siteMap = std::unordered_map<int, T>(); 
 	}
 	sparse_array3(const int &nx, const int &ny, const int &nz, const T &dv) :  _nx(nx), _ny(ny), _nz(nz), defaultValue(dv) { }
