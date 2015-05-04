@@ -1,1 +1,0 @@
-/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/fcc_test.dir/fcc_test.cpp.o  -o fcc_test  /usr/local/lib/libfftw3.dylib -framework OpenCL 

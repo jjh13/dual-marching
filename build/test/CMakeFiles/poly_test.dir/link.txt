@@ -1,1 +1,0 @@
-/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/poly_test.dir/polynomial_test.cpp.o  -o poly_test  /usr/local/lib/libfftw3.dylib -framework OpenCL 

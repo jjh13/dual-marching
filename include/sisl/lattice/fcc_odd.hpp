@@ -70,7 +70,7 @@ public:
 
 	virtual vector3<I> getSitePosition(const int &x, const int &y, const int &z) const  {
 			// int xx = x*2 + ((y&1) ^ (z&1));
-			return vector3<I>(I(x)*dh,I(y)*dh,I(z)*dh)
+			return vector3<I>(I(x)*dh,I(y)*dh,I(z)*dh);
 
 	}
 	virtual vector3<int> getNearestIndex(const vector3<I> &pos) const  {throw;};

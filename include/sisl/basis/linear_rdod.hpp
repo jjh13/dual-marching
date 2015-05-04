@@ -116,6 +116,36 @@ public:
 		O D4 = L->GV(P4[0], P4[1], P4[2]) * (midParameter-minParameter);
 		return D1 + D2 + D3 + D4;
 	}
+	
+	inline static const vector3<O> approximateGradient(const int &i, const int &j, const int &k, const shift_invariant_space3<linear_bcc_box, O, I> *L) {
+		O sx = O(1./(L->getScale()));
+#define W1 (1./6.)
+#define W2 (1./48.)
+		O dx = (
+			(L->GV(i+(1),j+(1),k+(1))  +  L->GV(i+(1),j+(1),k+(-1))  + L->GV(i+(1),j+(-1),k+(1))  + L->GV(i+(1),j+(-1),k+(-1)) )*(-W1) +				
+			(L->GV(i+(-1),j+(1),k+(1))  + L->GV(i+(-1),j+(1),k+(-1)) + L->GV(i+(-1),j+(-1),k+(1)) + L->GV(i+(-1),j+(-1),k+(-1)) )*(W1) +
+			(L->GV(i+(2),j+(2),k+(2))  + L->GV(i+(2),j+(2),k+(-2)) + L->GV(i+(2),j+(-2),k+(2)) + L->GV(i+(2),j+(-2),k+(-2)) )*(W2) +
+			(L->GV(i+(-2),j+(2),k+(2))  + L->GV(i+(-2),j+(2),k+(-2)) + L->GV(i+(-2),j+(-2),k+(2)) + L->GV(i+(-2),j+(-2),k+(-2)) )*(-W2)) * sx;
+		
+		O dy = (
+			(L->GV(i+(1),j+(1),k+(1))  +  L->GV(i+(1),j+(1),k+(-1))  + L->GV(i+(-1),j+(1),k+(1))  + L->GV(i+(-1),j+(1),k+(-1)) )*(-W1) +				
+			(L->GV(i+(1),j+(-1),k+(1))  + L->GV(i+(1),j+(-1),k+(-1)) + L->GV(i+(-1),j+(-1),k+(1)) + L->GV(i+(-1),j+(-1),k+(-1)) )*(W1) +
+			(L->GV(i+(2),j+(2),k+(2))  + L->GV(i+(2),j+(2),k+(-2)) + L->GV(i+(-2),j+(2),k+(2)) + L->GV(i+(-2),j+(2),k+(-2)) )*(W2) +
+			(L->GV(i+(2),j+(-2),k+(2))  + L->GV(i+(2),j+(-2),k+(-2)) + L->GV(i+(-2),j+(-2),k+(2)) + L->GV(i+(-2),j+(-2),k+(-2)) )*(-W2))* sx;
+
+		O dz = (
+			(L->GV(i+(1),j+(1),k+(1))  +  L->GV(i+(-1),j+(1),k+(1))  + L->GV(i+(1),j+(-1),k+(1))  + L->GV(i+(-1),j+(-1),k+(1)) )*(-W1) +				
+			(L->GV(i+(1),j+(1),k+(-1))  + L->GV(i+(-1),j+(1),k+(-1)) + L->GV(i+(1),j+(-1),k+(-1)) + L->GV(i+(-1),j+(-1),k+(-1)) )*(W1) +
+			(L->GV(i+(2),j+(2),k+(2))  + L->GV(i+(-2),j+(2),k+(2)) + L->GV(i+(2),j+(-2),k+(2)) + L->GV(i+(-2),j+(-2),k+(2)) )*(W2) +
+			(L->GV(i+(2),j+(2),k+(-2))  + L->GV(i+(-2),j+(2),k+(-2)) + L->GV(i+(2),j+(-2),k+(-2)) + L->GV(i+(-2),j+(-2),k+(-2)) )*(-W2)) * sx ;
+#undef W1
+#undef W2
+		return vector3<O>(dx,dy,dz);
+	}
+
+	static const vector3<O> convolutionSumNormal(const vector3<I> &p, shift_invariant_space3<linear_bcc_box, O, I> *L) {
+		return vector3<O>(0,0,0);
+	}
 
 	//Filters	
 	static O autocorrelationFilter(const I &u, const I &v, const I &w, const I &h) {

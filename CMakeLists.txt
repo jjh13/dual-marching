@@ -36,6 +36,8 @@ endif()
  	 MESSAGE(STATUS ${LIBS} )
 
 include_directories(./include)
+add_executable (poisson ./src/main.cpp) 
+target_link_libraries (poisson ${LIBS})
 
 add_subdirectory(test)
 

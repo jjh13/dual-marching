@@ -1,1 +1,0 @@
-/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cc_test.dir/cc_test.cpp.o  -o cc_test  /usr/local/lib/libfftw3.dylib -framework OpenCL /usr/local/lib/libfftw3.dylib -framework OpenCL 
