@@ -61,13 +61,13 @@ class HamFunction {
 public:
 	HamFunction(){}
 	double evaluate(const double &x, const double &y, const double &z) {
-		// double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
-		// return xx*xx + yy*yy + zz*zz - 0.25*0.25;
+		double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
+		return xx*xx + yy*yy + zz*zz - 0.25*0.25;
 
-		if( (x >= 0.25 && x <= 0.75) && (y >= 0.25 && y <= 0.75) && (z >= 0.25 && z <= 0.75)) {
-			return -1;
-		}
-		return 1.;
+		// if( (x >= 0.25 && x <= 0.75) && (y >= 0.25 && y <= 0.75) && (z >= 0.25 && z <= 0.75)) {
+		// 	return -1;
+		// }
+		// return 1.;
 		//return -(sin(0.3141592654e1 * x) * sin(0.3141592654e1 * y) * sin(0.3141592654e1 * z) * (sqrt(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1)) - 0.2e1 * cos(0.8e1 * 0.3141592654e1 * (0.9e1 * z - 0.45e1) * pow(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1), -0.1e1 / 0.2e1)) - 0.2e1));
 	}
 
@@ -104,10 +104,10 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		// HamFunction<double> f;
-		MarschnerLobb<double> f(6, 0.25);
+		//HamFunction<double> f;
+		 MarschnerLobb<double> f(6, 0.25);
 
-		LATType *lat = new LATType(1./double(2.*150));
+		LATType *lat = new LATType(1./double(2.*31));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
@@ -267,7 +267,7 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 					// Find the sign change.
 					
 					coeff = ((value - 0)/(value - next_value));
-					pv = (vector3<T>(x,y,z) - vector3<T>(ii,jj,kk)).normalize();
+					pv = vector3<T>(x,y,z) - vector3<T>(ii,jj,kk);//).normalize();
 					pv = vector3<T>(ii,jj,kk) + pv * coeff;
 
 					/*  */
