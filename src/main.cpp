@@ -104,14 +104,14 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		//HamFunction<double> f;
-		 MarschnerLobb<double> f(6, 0.25);
+		HamFunction<double> f;
+		 // MarschnerLobb<double> f(6, 0.25);
 
 		LATType *lat = new LATType(1./double(2.*31));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
-			return f.evaluate(p) - 0.5;
+			return f.evaluate(p);// - 0.5;
 		});
 
 		dualConour<double>(lat);
@@ -206,31 +206,26 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	};
 
 	std::vector<std::vector<std::vector<int>>> polygon_lookup = {
-		{{4,5,7}, {4,7,6}},			// {4 ,5  ,7  ,6},
-		{{8,9,10}, {8, 10, 11}},	// {8 ,9  ,10 ,11},
-		{{17,16,18}, {17, 18, 19}},	// {17,16 ,18 ,19},
-		{{12, 13, 15}, {12, 15, 14}},// {12,13 ,15 ,14},
-		{{0,1,3}, {0,3,2}}, // {0 , 1 , 3 , 2},
-		{{20,21,22}, {20,22,23}}, // {20, 21, 22, 23},
+		{{4,5,7}, {4,7,6}},			
+		{{8,9,10}, {8, 10, 11}},	
+		{{17,16,18}, {17, 18, 19}},	
+		{{12, 13, 15}, {12, 15, 14}},
+		{{0,1,3}, {0,3,2}},
+		{{20,21,22}, {20,22,23}}, 
 	    
-		{{2,3,4}, {2,4,5}, {2,5,17}, {2,17,16}}, // {2 ,3 ,4 ,5 ,17,16},
-		{{5,17,19}, {5,19,20}, {5,20,22}, {5, 22, 7}}, // {5 ,17,19,20,22,7 },
-		{{1,3,4}, {1,4,6}, {1,6,13}, {1,13,12}}, // {1 ,3 ,4 ,6 ,13,12},
-		{{13, 6, 7}, {13, 7,22}, {13,22, 23}, {13, 23, 15}}, // {13,6 ,7 ,22,23,15},
-		{{0,2,16}, {0, 16, 18}, {0, 18,9}, {0,9,8}}, // {0 ,2 ,16,18,9 ,8 },
-		{{18,9,11}, {18, 11, 21}, {18, 21,20}, {18,20,19}}, // {18,9 ,11,21,20,19},
-		{{0,1,12}, {0,12,14}, {0, 14, 10}, {0, 10, 8}}, // {0 ,1 ,12,14,10,8 },
-		{{10,14,15}, {10, 15, 23}, {19,23,21}, {10,21,11}} //    {10,14,15,23,21,11}
+		{{2,3,4}, {2,4,5}, {2,5,17}, {2,17,16}}, 
+		{{5,17,19}, {5,19,20}, {5,20,22}, {5, 22, 7}}, 
+		{{1,3,4}, {1,4,6}, {1,6,13}, {1,13,12}}, 
+		{{13, 6, 7}, {13, 7,22}, {13,22, 23}, {13, 23, 15}}, 
+		{{0,2,16}, {0, 16, 18}, {0, 18,9}, {0,9,8}}, 
+		{{18,9,11}, {18, 11, 21}, {18, 21,20}, {18,20,19}}, 
+		{{0,1,12}, {0,12,14}, {0, 14, 10}, {0, 10, 8}}, 
+		{{10,14,15}, {10, 15, 23}, {19,23,21}, {10,21,11}} 
 	};
 
 	struct cell_vertex
 	{
-		cell_vertex(){
-
-		}
-		cell_vertex(T x, T y, T z) { 
-			touching = {{x,y,z}};
-		};
+		cell_vertex(){}
 		std::vector<vector3<T> > touching;
 		vector3<T> vertex;
 		int vertexId;
@@ -278,10 +273,25 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 					for(auto triangle : luf) {
 						std::vector<vector3<int> > tri;
 
-						for(auto jdx : triangle) {
-							vector3<int> hash = centerIndices[jdx] + vector3<int>(ii*2, jj*2, kk*2);
-							tri.push_back(hash);
+						vector3<int> 
+								hash1 = centerIndices[triangle[0]] + vector3<int>(ii*2, jj*2, kk*2),
+								hash2 = centerIndices[triangle[1]] + vector3<int>(ii*2, jj*2, kk*2),
+								hash3 = centerIndices[triangle[2]] + vector3<int>(ii*2, jj*2, kk*2);
+
+						vector3<int> t = (hash2 - hash1)%(hash3 - hash1);
+
+						vector3<T> dir(t.i, t.j, t.k);
+						vector3<T> n;
+						{
+							#pragma omp critical
+							n = lattice->grad_f(pv * dh);
 						}
+
+						if(dir * n > 0)
+							tri = {hash1, hash2, hash3};
+						else 
+							tri = {hash3, hash2, hash1};
+
 						// 
 						{
 							#pragma omp critical
