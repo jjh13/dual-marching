@@ -104,14 +104,14 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		HamFunction<double> f;
-		 // MarschnerLobb<double> f(6, 0.25);
+		// HamFunction<double> f;
+		MarschnerLobb<double> f(6, 0.25);
 
 		LATType *lat = new LATType(1./double(2.*31));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
-			return f.evaluate(p);// - 0.5;
+			return f.evaluate(p) - 0.5;
 		});
 
 		dualConour<double>(lat);
@@ -254,16 +254,16 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 						z = vdx.k + kk;
 					T coeff = 0.5;
 					T next_value = lattice->GV(x, y, z);
-					vector3<T> pv;
+					vector3<T> pv, n;
 
 					if((next_value > 0 && value > 0) || (next_value <0 && value < 0))
 						continue;
 
 					// Find the sign change.
-					
 					coeff = ((value - 0)/(value - next_value));
-					pv = vector3<T>(x,y,z) - vector3<T>(ii,jj,kk);//).normalize();
+					pv = n = vector3<T>(x,y,z) - vector3<T>(ii,jj,kk);
 					pv = vector3<T>(ii,jj,kk) + pv * coeff;
+					n = n * (value > next_value ? -1 : 1);
 
 					/*  */
 					std::vector<int> adj = adj_index[idx - 1];
@@ -279,18 +279,9 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 								hash3 = centerIndices[triangle[2]] + vector3<int>(ii*2, jj*2, kk*2);
 
 						vector3<int> t = (hash2 - hash1)%(hash3 - hash1);
-
 						vector3<T> dir(t.i, t.j, t.k);
-						vector3<T> n;
-						{
-							#pragma omp critical
-							n = lattice->grad_f(pv * dh);
-						}
-
-						if(dir * n > 0)
-							tri = {hash1, hash2, hash3};
-						else 
-							tri = {hash3, hash2, hash1};
+						if(dir * n > 0) tri = {hash1, hash2, hash3};
+						else tri = {hash3, hash2, hash1};
 
 						// 
 						{
