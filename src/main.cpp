@@ -19,6 +19,8 @@
 #include <sisl/utility/scattered.hpp>
 #include <sisl/utility/ply_writer.hpp>
 
+#include <Eigen/Dense>
+
 #include <tuple>
 #include <cmath>
 
@@ -134,6 +136,56 @@ int main(int argc, char *argv[])
 	}catch (char const* e) {
 		cerr << e << endl; 
 	}
+}
+
+template<class T> 
+vector3<T> optimize_for_feature(
+		const std::vector<vector3<T>> &points, 
+		const std::vector<vector3<T>> &normals,
+		const T &threshold = 0.1,
+		const bool &optimize = true) {
+	using namespace Eigen;
+	typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> EMatrix;
+	vector3<T> center(0,0,0);
+	EMatrix A(points.size(), 3), b(points.size(), 1);
+	unsigned int i = 0; 
+
+	// Calculate the center and setup the matix
+	for(auto v : points) { 
+		center += v; 
+
+		A(i, 0) = v.i;
+		A(i, 1) = v.j;
+		A(i, 2) = v.k;
+
+		b(i, 0) = points[i] * normals[i];
+		i++;
+	}
+
+	center = center * (1./(T(points.size())));
+
+	if(optimize){
+		JacobiSVD<EMatrix> svd(A, ComputeThinU | ComputeThinV);
+		EMatrix U = svd.matrixU(), V = svd.matrixV();
+		EMatrix SS(3,3);
+		auto lambda = svd.singularValues();
+
+		cout << "U" << endl;
+		cout << U << endl;
+
+		cout << 'Ss' << endl;
+		cout << lambda << endl;
+
+		cout << "V" << endl;
+		cout << V << endl;
+		// Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> sol = V * SS* U;
+		// center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
+
+
+	}
+
+
+	return center;
 }
 
 template <class T>
@@ -305,22 +357,16 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	for (auto it = face_hash_table.siteMap.begin(); it != face_hash_table.siteMap.end(); ++it) {
 		auto hash = it->first;
 		auto vcache = it->second;
-		auto pavg = vector3<T>(0,0,0);
-		auto vList = vcache.touching;
-		auto size = vList.size();
 
+		std::vector<vector3<T>> normals;
+		for(auto v : vcache.touching) 
+			normals.push_back(lattice->grad_f(v*dh).normalize());
+		
 
-		for(auto v : vList) {
-			pavg += v;
-		}
-		pavg = pavg * (dh/((T)size));
+		auto pavg = optimize_for_feature<T>(vcache.touching, normals) * dh;
 		auto normal = lattice->grad_f(pavg).normalize();
-
-		vertex3<T> vtx(pavg.i, pavg.j, pavg.k, normal.i, normal.j, normal.k);
-
-		{
-			face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex(vtx);
-		}
+		
+		face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex({pavg, normal});
 	}
 
 	/* Build the final face list */
