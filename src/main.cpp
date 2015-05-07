@@ -264,13 +264,13 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 		int vertexId;
 	};
 
-	std::vector<int> minimal_set = {1 , 2, 3, 4, 5 };
+	std::vector<int> minimal_set = {1 , 2, 3, 4, 6, 7, 8};
 	sparse_array3<cell_vertex> face_hash_table(1000,1000,1000, {});
 	std::vector<std::vector<vector3<int> > > faceList;
 
 	utility::ply_writer<T> output_mesh;
 	#pragma omp parallel for
-	for(unsigned int i = 2; i < res-2; i+=2)
+	for(unsigned int i = 2; i < res-4; i+=2)
 		for(unsigned int j = 2; j < res - 2; j++)
 			for(unsigned int k = 2; k < res - 2; k++) {
 
