@@ -90,7 +90,7 @@ public:
 			for(unsigned int j = 1; j < res - 1; j++)
 				for(unsigned int k = 1; k < res - 1; k++) {
 
-					int ii = i*2 + ((j&1) ^ (k&1));
+					int ii = i + ((j&1) ^ (k&1));
 
 					/* The little bit-hack operations encode the following
 					if(j % 2) {
