@@ -2,7 +2,10 @@
 #define _DUAL_BCC_ISOSURFACE_H_
 
 #include <sisl/sisl.hpp>
+#include <sisl/sparse_array.hpp>
 #include <sisl/utility/ply_writer.hpp>
+
+#include <Eigen/Dense>
 
 #include <tuple>
 #include <unordered_map>
@@ -10,10 +13,23 @@
 
 namespace sisl{
 namespace utility{
+using namespace std;
 
 template<class T>
 class dualbcc_isosurface{
 public:
+	struct cell_vertex
+	{
+		cell_vertex(){}
+		std::vector<vector3<T> > touching;
+		vector3<T> vertex;
+		int vertexId;
+	};
+
+	dualbcc_isosurface() : face_hash_table(1000,1000,1000, {}){
+		this->faceList.clear();
+	}
+
 	template<class L, class I, class O>
 	void contour(
 			L *f,
@@ -29,7 +45,6 @@ public:
 		#pragma omp parallel for
 		for(int i = 2; i < res*2-2; i+=2) {
 			std::vector<std::vector<vector3<int>>> localFaceList;
-
 
 			for(int j = 2; j < res*2-2; j+=2)
 				for(int k = 2; k < res*2-2; k++){
@@ -80,22 +95,67 @@ public:
 						}
 						
 						// Mark the hashed dual vertex as having seen this primal vertex
-						for(int jdx : adj_index) {
+						for(auto jdx : adj) {
 							vector3<int> hash = center_hash_offsets[jdx] + vector3<int>(ii*2, jj*2, kk*2);
-						// 	// {
-						// 	// 	#pragma omp critical
-						// 	// 	face_hash_table(hash.i, hash.j, hash.k).touching.push_back({pv.i, pv.j, pv.k});
-						// 	// }
+							
+							#pragma omp critical (hash_bash_bcc)
+							{
+								face_hash_table(hash.i, hash.j, hash.k).touching.push_back({pv.i, pv.j, pv.k});
+							}
 						}
 
 					}
 				}
+				// Merge the faces back in to global face list
+				#pragma omp critical (lizst_cyst)
+				{
+					faceList.reserve(faceList.size() + localFaceList.size());
+					faceList.insert(faceList.end(), localFaceList.begin(), localFaceList.end());
+				}
 		}
+		processVertices<L,I,O>(f, dh);
+		processFaces();
+	}
 
-
+	bool writeSurface(const std::string &out) const {
+		return output_mesh.writePly(out);
 	}
 
 private:
+	template<class L, class I, class O>
+	void processVertices(L *f, const I &dh){
+		// Calculate the vertex for each cell
+		for (auto it = face_hash_table.siteMap.begin(); it != face_hash_table.siteMap.end(); ++it) {
+			auto hash = it->first;
+			auto vcache = it->second;
+
+			std::vector<vector3<T>> normals;
+			for(auto v : vcache.touching) 
+				normals.push_back(f->grad_f(v*dh).normalize());
+			
+
+			auto pavg = optimize_for_feature(vcache.touching, normals) * dh;
+			auto normal = f->grad_f(pavg).normalize();
+			
+			face_hash_table.siteMap[hash].vertexId = output_mesh.addVertex({pavg, normal});
+		}
+	}
+
+	void processFaces(){
+		/* Build the final face list */
+		for(auto face : faceList) {
+			std::vector<int> index_face; 
+			for(auto hash : face) {
+				index_face.push_back(face_hash_table(hash.i, hash.j, hash.k).vertexId);
+			}
+			output_mesh.addPolygon(index_face);
+		}
+	}
+
+	std::vector<std::vector<vector3<int>>> faceList;
+	sisl::sparse_array3<cell_vertex> face_hash_table; 
+	utility::ply_writer<T> output_mesh;
+	
 	const std::vector<vector3<int>> polyhedron_vertices = {
 		{ 0, 0, 0},	{ 2, 0, 0}, {-2, 0, 0}, { 0, 2, 0},	{ 0,-2, 0},
 		{ 0, 0, 2},	{ 0, 0,-2}, { 1, 1, 1},	{ 1, 1,-1},	{ 1,-1, 1},	
@@ -132,6 +192,76 @@ private:
 	};
 
 	const std::vector<int> minimal_face_set = {1, 3, 5, 7, 8, 9, 11};
+
+
+	vector3<T> optimize_for_feature(
+			const std::vector<vector3<T>> &points, 
+			const std::vector<vector3<T>> &normals,
+			const T &threshold = 0.1,
+			const bool &optimize = true) {
+		using namespace Eigen;
+		typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> EMatrix;
+		vector3<T> center(0,0,0);
+		EMatrix A(points.size(), 3), b(points.size(), 1);
+		unsigned int i = 0; 
+
+		// Calculate the center and setup the matix
+		for(auto v : points) { 
+			center += v; 
+
+			A(i, 0) = v.i;
+			A(i, 1) = v.j;
+			A(i, 2) = v.k;
+
+			b(i, 0) = points[i] * normals[i];
+			i++;
+		}
+
+		center = center * (1./(T(points.size())));
+
+		// if(optimize && points.size() == 3){
+		// 	JacobiSVD<EMatrix> svd(A, ComputeThinU | ComputeThinV);
+		// 	EMatrix U = svd.matrixU(), V = svd.matrixV();
+		// 	EMatrix SS = EMatrix::Zero(V.cols(), U.rows());
+
+		// 	auto lambda = svd.singularValues();
+		// 	for(int i = 0; i < lambda.rows(); i++){
+		// 		if(abs(lambda(i)) > 0.1)
+		// 			SS(i,i) = 1./lambda(i);
+		// 	}
+
+		// 	cout << "A" << endl;
+		// 	cout << A << endl;
+
+		// 	cout << "U" << endl;
+		// 	cout << U << endl;
+
+		// 	cout << "SS" << endl;
+		// 	cout << lambda << endl;
+
+		// 	cout << "V" << endl;
+		// 	cout << V << endl;
+
+		// 	cout << "LS" << endl;
+		// 	cout << SS << endl;
+
+		// 	cout << "B" << endl;
+		// 	EMatrix sol = (V.transpose()*SS.transpose()*U.transpose() )*b;// << endl;
+		// 	cout << sol << endl;
+
+		// 	sol = svd.solve(b);
+		// 	cout << "B" << endl;
+		// 	cout << sol << endl;
+
+		// //	center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
+
+
+		// }
+
+
+		return center;
+	}
+
 };
 };
 };

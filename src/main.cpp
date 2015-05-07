@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
 	try {
 		CmdLine cmd("Dual BCC marching", ' ', VESION_STRING);
 		sisl::utility::marchingCubes<double> mc;
+		sisl::utility::dualbcc_isosurface<double> dbcc;
 
 		ValueArg<std::string> outputArg("o", "output", "Output mesh/implicit file",true,"out.ply","filename");
 
@@ -107,30 +108,36 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		HamFunction<double> f;
-		// MarschnerLobb<double> f(6, 0.25);
+		// HamFunction<double> f;
+		MarschnerLobb<double> f(6, 0.25);
 
-		LATType *lat = new LATType(1./double(2.*27));
+		LATType *lat = new LATType(1./double(2.*200));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
 			return f.evaluate(p);// - 0.5;
 		});
 
-		dualConour<double>(lat);
+		// dualConour<double>(lat);
 
 
-		mc.marchLattice<LATType, double, double>(
-			lat, 
-			NULL, 
-			NULL, 
-			NULL, 
-			0, 
-			0.005, 
+		dbcc.contour<LATType, double, double>(
+			lat, 0.5, lat->getScale(), 
 			vector3<double>(0.1,0.1,0.1), 
-			vector3<double>(0.9,0.9,0.9));
+			vector3<double>(0.9,0.9,0.9)
+		);
 
-		mc.writeSurface("marchingCubesTest.ply");
+		// mc.marchLattice<LATType, double, double>(
+		// 	lat, 
+		// 	NULL, 
+		// 	NULL, 
+		// 	NULL, 
+		// 	0, 
+		// 	0.005, 
+		// 	vector3<double>(0.1,0.1,0.1), 
+		// 	vector3<double>(0.9,0.9,0.9));
+		dbcc.writeSurface("dualBccTest.ply");
+		// mc.writeSurface("marchingCubesTest.ply");
 
 	}catch (ArgException &e) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl; 
@@ -176,30 +183,30 @@ vector3<T> optimize_for_feature(
 				SS(i,i) = 1./lambda(i);
 		}
 
-		cout << "A" << endl;
-		cout << A << endl;
+		// cout << "A" << endl; 
+		// cout << A << endl;
 
-		cout << "U" << endl;
-		cout << U << endl;
+		// cout << "U" << endl;
+		// cout << U << endl;
 
-		cout << "SS" << endl;
-		cout << lambda << endl;
+		// cout << "SS" << endl;
+		// cout << lambda << endl;
 
-		cout << "V" << endl;
-		cout << V << endl;
+		// cout << "V" << endl;
+		// cout << V << endl;
 
-		cout << "LS" << endl;
-		cout << SS << endl;
+		// cout << "LS" << endl;
+		// cout << SS << endl;
 
-		cout << "B" << endl;
-		EMatrix sol = (V.transpose()*SS.transpose()*U.transpose() )*b;// << endl;
-		cout << sol << endl;
+		// cout << "B" << endl;
+		// EMatrix sol = (V.transpose()*SS.transpose()*U.transpose() )*b;// << endl;
+		// cout << sol << endl;
 
-		sol = svd.solve(b);
-		cout << "B" << endl;
-		cout << sol << endl;
+		// sol = svd.solve(b);
+		// cout << "B" << endl;
+		// cout << sol << endl;
 
-		center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
+		// center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
 
 
 	}
