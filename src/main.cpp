@@ -16,6 +16,7 @@
 // utility functions
 #include <poisson/pointset.hpp>
 #include <sisl/utility/isosurface.hpp>
+#include <sisl/utility/dualbcc.hpp>
 #include <sisl/utility/scattered.hpp>
 #include <sisl/utility/ply_writer.hpp>
 
@@ -106,14 +107,14 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		// HamFunction<double> f;
-		MarschnerLobb<double> f(6, 0.25);
+		HamFunction<double> f;
+		// MarschnerLobb<double> f(6, 0.25);
 
-		LATType *lat = new LATType(1./double(2.*31));
+		LATType *lat = new LATType(1./double(2.*27));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
-			return f.evaluate(p) - 0.5;
+			return f.evaluate(p);// - 0.5;
 		});
 
 		dualConour<double>(lat);
@@ -164,22 +165,41 @@ vector3<T> optimize_for_feature(
 
 	center = center * (1./(T(points.size())));
 
-	if(optimize){
+	if(optimize && points.size() == 3){
 		JacobiSVD<EMatrix> svd(A, ComputeThinU | ComputeThinV);
 		EMatrix U = svd.matrixU(), V = svd.matrixV();
-		EMatrix SS(3,3);
+		EMatrix SS = EMatrix::Zero(V.cols(), U.rows());
+
 		auto lambda = svd.singularValues();
+		for(int i = 0; i < lambda.rows(); i++){
+			if(abs(lambda(i)) > 0.1)
+				SS(i,i) = 1./lambda(i);
+		}
+
+		cout << "A" << endl;
+		cout << A << endl;
 
 		cout << "U" << endl;
 		cout << U << endl;
 
-		cout << 'Ss' << endl;
+		cout << "SS" << endl;
 		cout << lambda << endl;
 
 		cout << "V" << endl;
 		cout << V << endl;
-		// Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> sol = V * SS* U;
-		// center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
+
+		cout << "LS" << endl;
+		cout << SS << endl;
+
+		cout << "B" << endl;
+		EMatrix sol = (V.transpose()*SS.transpose()*U.transpose() )*b;// << endl;
+		cout << sol << endl;
+
+		sol = svd.solve(b);
+		cout << "B" << endl;
+		cout << sol << endl;
+
+		center = vector3<T>(sol(0,0), sol(1,0), sol(2,0));
 
 
 	}
