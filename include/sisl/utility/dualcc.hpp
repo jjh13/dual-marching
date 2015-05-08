@@ -1,5 +1,5 @@
-#ifndef _DUAL_BCC_ISOSURFACE_H_
-#define _DUAL_BCC_ISOSURFACE_H_
+#ifndef _DUAL_CC_ISOSURFACE_H_
+#define _DUAL_CC_ISOSURFACE_H_
 
 #include <sisl/sisl.hpp>
 #include <sisl/sparse_array.hpp>
@@ -26,7 +26,7 @@ public:
 		int vertexId;
 	};
 
-	dualbcc_isosurface() : face_hash_table(1000,1000,1000, {}){
+	dualcc_isosurface() : face_hash_table(1000,1000,1000, {}){
 		this->faceList.clear();
 	}
 
@@ -218,4 +218,4 @@ private:
 };
 };
 
-#endif // _DUAL_BCC_ISOSURFACE_H_
+#endif // _DUAL_CC_ISOSURFACE_H_

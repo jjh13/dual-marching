@@ -1,5 +1,5 @@
-#ifndef _DUAL_BCC_ISOSURFACE_H_
-#define _DUAL_BCC_ISOSURFACE_H_
+#ifndef _DUAL_FCC_ISOSURFACE_H_
+#define _DUAL_FCC_ISOSURFACE_H_
 
 #include <sisl/sisl.hpp>
 #include <sisl/sparse_array.hpp>
@@ -16,7 +16,7 @@ namespace utility{
 using namespace std;
 
 template<class T>
-class dualcc_isosurface{
+class dualfcc_isosurface{
 public:
 	struct cell_vertex
 	{
@@ -26,7 +26,7 @@ public:
 		int vertexId;
 	};
 
-	dualbcc_isosurface() : face_hash_table(1000,1000,1000, {}){
+	dualfcc_isosurface() : face_hash_table(1000,1000,1000, {}){
 		this->faceList.clear();
 	}
 
@@ -52,7 +52,7 @@ public:
 
 			for(unsigned int j = 2; j < res - 2; j++)
 				for(unsigned int k = 2; k < res - 2; k++) {
-					int ii = i;
+					int ii = i + ((j&1) ^ (k&1));
 					int jj = j;
 					int kk = k;
 
@@ -225,4 +225,4 @@ private:
 };
 };
 
-#endif // _DUAL_BCC_ISOSURFACE_H_
+#endif // _DUAL_CC_ISOSURFACE_H_
