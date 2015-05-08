@@ -108,14 +108,14 @@ int main(int argc, char *argv[])
 		typedef linear_bcc_box<double, double> GFType;
 		typedef bcc_odd<linear_bcc_box<double, double>, double, double> LATType;
 
-		HamFunction<double> f;
-		// MarschnerLobb<double> f(6, 0.25);
+		// HamFunction<double> f;
+		MarschnerLobb<double> f(6, 0.25);
 
-		LATType *lat = new LATType(1./double(2.*25));
+		LATType *lat = new LATType(1./double(2.*50));
 
 		lat->forEachLatticeSite([&](const int &i, const int &j, const int &k) {
 			vector3<double> p = lat->getSitePosition(i,j,k);
-			return f.evaluate(p);// - 0.5;
+			return f.evaluate(p) - 0.5;
 		});
 
 		dualConour<double>(lat);
@@ -190,7 +190,7 @@ template <class T>
 void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 	int res = lattice->getResolution();
 	T dh = lattice->getScale();
-	res = int(1./dh)+1;
+	res = int(1./dh);
 
 
 	std::vector<vector3<int> > vertices = {
@@ -270,7 +270,7 @@ void dualConour(bcc_odd<linear_bcc_box<T,T>, T, T>  *lattice){
 
 	utility::ply_writer<T> output_mesh;
 	#pragma omp parallel for
-	for(unsigned int i = 2; i < res-4; i+=2)
+	for(unsigned int i = 2; i < 2*res-4; i+=2)
 		for(unsigned int j = 2; j < res - 2; j++)
 			for(unsigned int k = 2; k < res - 2; k++) {
 
