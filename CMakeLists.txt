@@ -37,8 +37,8 @@ endif()
 MESSAGE(STATUS ${LIBS} )
 
 include_directories(./include)
-add_executable (dualbcc ./src/main.cpp) 
-target_link_libraries (dualbcc ${LIBS})
+add_executable (dualmarching ./src/main.cpp) 
+target_link_libraries (dualmarching ${LIBS})
 
 add_subdirectory(test)
 
