@@ -53,10 +53,12 @@ public:
 	double f(const vector3<T> &p) {return this->f(p.i, p.j, p.k);}
 	vector3<double> grad_f(const vector3<T> &p) { return this->grad_f(p.i, p.j, p.k); }
 	vector3<double> grad_f(const double &x, const double &y, const double &z) {
+		double xx = 2*x - 1;
+		double yy = 2*y - 1;
 		return vector3<double> (
-			0,
-			0,
-			0
+			M_PI*M_PI*a*fm*(xx)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy)))*sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
+			M_PI*M_PI*a*fm*(yy)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy)))*sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
+			0.25*M_PI*cos(0.5*M_PI*z)/(a + 1.)
 		);
 	}
 };
@@ -66,13 +68,6 @@ class HamFunction {
 public:
 	HamFunction(){}
 	double f(const double &x, const double &y, const double &z) {
-		// double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
-		// return xx*xx + yy*yy + zz*zz - 0.25*0.25;
-
-		// if( (x >= 0.25 && x <= 0.75) && (y >= 0.25 && y <= 0.75) && (z >= 0.25 && z <= 0.75)) {
-		// 	return -1;
-		// }
-		// return 1.;
 		return -(sin(0.3141592654e1 * x) * sin(0.3141592654e1 * y) * sin(0.3141592654e1 * z) * (sqrt(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1)) - 0.2e1 * cos(0.8e1 * 0.3141592654e1 * (0.9e1 * z - 0.45e1) * pow(0.25e0 + pow(0.9e1 * x - 0.45e1, 0.2e1) + pow(0.9e1 * y - 0.45e1, 0.2e1) + pow(0.9e1 * z - 0.45e1, 0.2e1), -0.1e1 / 0.2e1)) - 0.2e1));
 	}
 
@@ -83,9 +78,31 @@ public:
 	vector3<double> grad_f(const vector3<T> &p) { return this->grad_f(p.i, p.j, p.k); }
 	vector3<double> grad_f(const double &x, const double &y, const double &z) {
 		return vector3<double> (
-			0,
-			0,
-			0
+			2*(x-0.5),
+			2*(y-0.5),
+			2*(z-0.5)
+		);
+	}
+};
+
+
+template<class T>
+class SphereFunction{
+public:
+	SphereFunction(){}
+	double f(const double &x, const double &y, const double &z) {
+		double xx = (x-0.5), yy = (y-0.5), zz = (z-0.5);
+		return xx*xx + yy*yy + zz*zz - 0.25*0.25;
+	}
+
+	double f(const vector3<T> &p) {return this->f(p.i, p.j, p.k);}
+
+	vector3<double> grad_f(const vector3<T> &p) { return this->grad_f(p.i, p.j, p.k); }
+	vector3<double> grad_f(const double &x, const double &y, const double &z) {
+		return vector3<double> (
+			2*(x-0.5),
+			2*(y-0.5),
+			2*(z-0.5)
 		);
 	}
 };
@@ -111,30 +128,68 @@ int main(int argc, char *argv[])
 
 		cmd.parse(argc, argv);
 		std::string output = outputArg.getValue();
-		std::string function = outputArg.getValue();
+		std::string function = testFunction.getValue();
 
-		HamFunction<double> f;
-		// MarschnerLobb<double> f(6, 0.25);
+		double levelset = isoValue.getValue();
 
-		dbcc.contour<HamFunction<double> , double, double>(
-			&f, 0.5, 1./(2.*25),
-			vector3<double>(0,0,0), 
-			vector3<double>(1,1,1)
-		);
-		dfcc.contour<HamFunction<double> , double, double>(
-			&f, 0.5, 1./(2.*25),
-			vector3<double>(0,0,0), 
-			vector3<double>(1,1,1)
-		);
-		dcc.contour<HamFunction<double> , double, double>(
-			&f, 0.5, 1./(2.*25),
-			vector3<double>(0,0,0), 
-			vector3<double>(1,1,1)
-		);
+		HamFunction<double> hf;
+		SphereFunction<double> sf;
+		MarschnerLobb<double> mf(6, 0.25);
 
-		dbcc.writeSurface("dualBCCTest.ply");
-		dfcc.writeSurface("dualFCCTest.ply");
-		dcc.writeSurface("dualCCTest.ply");
+		if(function == std::string("lobb")){
+			dbcc.contour<MarschnerLobb<double>, double, double>(
+				&mf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dfcc.contour<MarschnerLobb<double>, double, double>(
+				&mf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dcc.contour<MarschnerLobb<double>, double, double>(
+				&mf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+		}else if(function == std::string("ham")){
+			dbcc.contour<HamFunction<double>, double, double>(
+				&hf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dfcc.contour<HamFunction<double>, double, double>(
+				&hf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dcc.contour<HamFunction<double>, double, double>(
+				&hf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+		}else if(function == std::string("sphere")){
+			dbcc.contour<SphereFunction<double> , double, double>(
+				&sf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dfcc.contour<SphereFunction<double> , double, double>(
+				&sf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+			dcc.contour<SphereFunction<double> , double, double>(
+				&sf, levelset, 1./(2.*25),
+				vector3<double>(0,0,0), 
+				vector3<double>(1,1,1)
+			);
+		}
+
+
+		dbcc.writeSurface(output + std::string(".bcc.ply"));
+		dbcc.writeSurface(output + std::string(".fcc.ply"));
+		dbcc.writeSurface(output + std::string(".cc.ply"));
 
 	}catch (ArgException &e) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl; 
