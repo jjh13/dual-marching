@@ -43,7 +43,7 @@ public:
 		return cos(2*M_PI*fm*cos(r*M_PI/2.));
 	}	
 	double f(const double &xx, const double &yy, const double &zz) {
-		double x = (xx-0.5)*2., y = (yy-0.5)*2., z = (zz-0.5)*2.;
+		double x = (2.*xx-1.), y = (2.*yy-1.), z = (2.*zz-1.);
 		double r = rho(sqrt(x*x + y*y));
 		double ret = 1. - sin(M_PI*z/2.) + a * (1. + r);
 		return ret/(2. + 2.*a);
@@ -53,12 +53,13 @@ public:
 	double f(const vector3<T> &p) {return this->f(p.i, p.j, p.k);}
 	vector3<double> grad_f(const vector3<T> &p) { return this->grad_f(p.i, p.j, p.k); }
 	vector3<double> grad_f(const double &x, const double &y, const double &z) {
-		double xx = 2*x - 1;
-		double yy = 2*y - 1;
+		double xx = 2.*x - 1.;
+		double yy = 2.*y - 1.;
+		double zz = 2.*z - 1.;
 		return vector3<double> (
-			M_PI*M_PI*a*fm*(xx)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy)))*sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
-			M_PI*M_PI*a*fm*(yy)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy)))*sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
-			0.25*M_PI*cos(0.5*M_PI*z)/(a + 1.)
+			M_PI*M_PI*a*fm*(xx)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy))) *sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
+			M_PI*M_PI*a*fm*(yy)*sin(2.*M_PI*fm*cos(0.5*M_PI*sqrt(xx*xx + yy*yy))) *sin(0.5*M_PI*sqrt(xx*xx + yy*yy))/(sqrt(xx*xx + yy*yy)*(a + 1.)),
+			-0.5*M_PI*cos(0.5*M_PI*zz)/(a + 1.)
 		);
 	}
 };
@@ -78,9 +79,9 @@ public:
 	vector3<double> grad_f(const vector3<T> &p) { return this->grad_f(p.i, p.j, p.k); }
 	vector3<double> grad_f(const double &x, const double &y, const double &z) {
 		return vector3<double> (
-			2*(x-0.5),
-			2*(y-0.5),
-			2*(z-0.5)
+			2.*(x-0.5),
+			2.*(y-0.5),
+			2.*(z-0.5)
 		);
 	}
 };
@@ -138,49 +139,49 @@ int main(int argc, char *argv[])
 
 		if(function == std::string("lobb")){
 			dbcc.contour<MarschnerLobb<double>, double, double>(
-				&mf, levelset, 1./(2.*25),
+				&mf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dfcc.contour<MarschnerLobb<double>, double, double>(
-				&mf, levelset, 1./(2.*25),
+				&mf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dcc.contour<MarschnerLobb<double>, double, double>(
-				&mf, levelset, 1./(2.*25),
+				&mf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 		}else if(function == std::string("ham")){
 			dbcc.contour<HamFunction<double>, double, double>(
-				&hf, levelset, 1./(2.*25),
+				&hf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dfcc.contour<HamFunction<double>, double, double>(
-				&hf, levelset, 1./(2.*25),
+				&hf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dcc.contour<HamFunction<double>, double, double>(
-				&hf, levelset, 1./(2.*25),
+				&hf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 		}else if(function == std::string("sphere")){
 			dbcc.contour<SphereFunction<double> , double, double>(
-				&sf, levelset, 1./(2.*25),
+				&sf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dfcc.contour<SphereFunction<double> , double, double>(
-				&sf, levelset, 1./(2.*25),
+				&sf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
 			dcc.contour<SphereFunction<double> , double, double>(
-				&sf, levelset, 1./(2.*25),
+				&sf, levelset, 1./(2.*100),
 				vector3<double>(0,0,0), 
 				vector3<double>(1,1,1)
 			);
@@ -188,8 +189,8 @@ int main(int argc, char *argv[])
 
 
 		dbcc.writeSurface(output + std::string(".bcc.ply"));
-		dbcc.writeSurface(output + std::string(".fcc.ply"));
-		dbcc.writeSurface(output + std::string(".cc.ply"));
+		dfcc.writeSurface(output + std::string(".fcc.ply"));
+		dcc.writeSurface(output + std::string(".cc.ply"));
 
 	}catch (ArgException &e) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl; 
