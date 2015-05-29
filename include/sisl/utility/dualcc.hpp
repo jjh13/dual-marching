@@ -26,9 +26,10 @@ public:
 		int vertexId;
 	};
 
-	dualcc_isosurface() : face_hash_table(1000,1000,1000, {}){
+	dualcc_isosurface() : face_hash_table(1,1,1, {}){
 		this->faceList.clear();
 	}
+
 
 	template<class L, class I, class O>
 	void contour(
@@ -40,6 +41,7 @@ public:
 
 		I dh = scalingParameter;
 		int res = int(1./(dh));
+		this->faceList = sisl::sparse_array3<cell_vertex>(res+2, res+2, res+2, {});
 
 		// Go over every lattice point
 		#pragma omp parallel for
